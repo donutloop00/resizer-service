@@ -21,7 +21,21 @@ func sendRequestToImaginary() {
 
 }
 
-func main() {
+func imgDefaultHandler(c echo.Context) {
+	//run req validator function here and respond with error early if needed
 
-	//	http.ListenAndServe(":8080")
+}
+
+func imgResizeHandler(c echo.Context) {
+	//run req validator function here and respond with error early if needed
+
+}
+
+func main() {
+	e := echo.New()
+
+	e.GET("/path1", imgDefaultHandler)
+	e.GET("/path2", imgResizeHandler)
+
+	e.Logger.Fatal(e.Start(":1323"))
 }
