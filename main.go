@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	// "os"
+	"strings"
+	"strconv"
 
 	"github.com/labstack/echo"
 	"io/ioutil"
@@ -30,9 +33,42 @@ func checkValidDimensions(x, y int) bool {
 	}
 }
 
+func imgResizeHandler(c echo.Context) error {
+	//check if the image has already been resized before
+	resizedFilename := c.Param("resizedImageName")	
+
+	//filename format: uniquefilename_x_y.jpg
+	resizedFilenameAndExt := strings.Split(resizedFilename,".")
+	tokenizedName := strings.Split(resizedFilenameAndExt[0], "_")
+
+	fmt.Println(tokenizedName)
+
+	reqWidth, err := strconv.Atoi(tokenizedName[1])
+	if err != nil {	
+		errorMsg := "Error converting width to an int"
+		return echo.NewHTTPError(http.StatusBadRequest, errorMsg)
+	}
+
+	reqHeight, err := strconv.Atoi(tokenizedName[2])
+	if err != nil {	
+		errorMsg := "Error converting height to an int"
+		return echo.NewHTTPError(http.StatusBadRequest, errorMsg)
+	}
+
+	dimensionsAreValid := checkValidDimensions(reqWidth, reqHeight)
+
+	if !dimensionsAreValid {
+		errorMsg := "One or both height and width dimensions are invalid"
+		return echo.NewHTTPError(http.StatusBadRequest, errorMsg)
+	}
+
+	return c.String(http.StatusOK, "temporary")
+}
+
 func main() {
 	e := echo.New()
 
+	e.GET("/static/resized/:resizedImageName", imgResizeHandler)
 	e.Static("/static", "./static")
 
 	e.Logger.Fatal(e.Start(":1323"))
