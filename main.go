@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "os"
+	"os"
 	"strings"
 	"strconv"
 
@@ -22,7 +22,6 @@ func sendRequestToImaginary() {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(body))
-
 }
 
 func checkValidDimensions(x, y int) bool {
@@ -60,6 +59,14 @@ func imgResizeHandler(c echo.Context) error {
 	if !dimensionsAreValid {
 		errorMsg := "One or both height and width dimensions are invalid"
 		return echo.NewHTTPError(http.StatusBadRequest, errorMsg)
+	}
+
+	// see if the image has been resized before
+	if fileInfo, err := os.Stat("static/resized/" + resizedFilename); !os.IsNotExist(err) {
+		//trusting the server to get the file extension right instead of the user's requested filename
+		fileExt := fileInfo.Name();
+		c.Response().Header().Set(echo.HeaderContentType, resizedFilename + "." + fileExt)
+	  	return c.File("static/resized/" + resizedFilename)
 	}
 
 	return c.String(http.StatusOK, "temporary")
