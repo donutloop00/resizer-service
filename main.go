@@ -69,6 +69,14 @@ func imgResizeHandler(c echo.Context) error {
 	  	return c.File("static/resized/" + resizedFilename)
 	}
 
+	// check if the source image exists. if not, send a 404 error
+	if _, err := os.Stat("static/source/" + tokenizedName[0]); err != nil {
+		if os.IsNotExist(err){
+			errorMsg := "Source image does not exist for resizing."
+			return echo.NewHTTPError(http.StatusNotFound, errorMsg)
+		}
+	}
+
 	return c.String(http.StatusOK, "temporary")
 }
 
