@@ -12,22 +12,49 @@ import (
 	//	"github.com/h2non/imaginary"
 )
 
-func sendRequestToImaginary() {
-	//	res, err := http.Post()
-	resp, err := http.Get("imaginary:9000/form")
+func sendRequestToResizer(fileHandle *os.File, x int, y int) (string, error) {
+	splitFileName := strings.Split(fileHandle.Name(), ".")
+	tokenizedPathNoExt := strings.Split(splitFileName[0], "/")
+	baseFileName := tokenizedPathNoExt[len(tokenizedPathNoExt) - 1]
+	imageType := splitFileName[len(splitFileName) - 1]
+	contentType := "image/" + imageType
+
+	widthAsStr := strconv.Itoa(x)
+	heightAsStr := strconv.Itoa(y)
+
+	//width is the only required dimension for a resize
+	resizeQueryStr := "width=" + widthAsStr
+
+	resp, err := http.Post("http://localhost:9000/resize?" + resizeQueryStr, contentType, fileHandle)
+	// resp, err := http.Post("imaginary/resize?" + resizeQueryStr, contentType, fileHandle)
 	if err != nil {
-		//replace with a legit error later
-		fmt.Println("trouble reaching imaginary server")
+		errorMsg := "Error communicating with image resize server."
+		return "", echo.NewHTTPError(http.StatusInternalServerError, errorMsg)
 	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	fmt.Println(resp)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errorMsg := "Error reading image response from resizer service."
+		return "", echo.NewHTTPError(http.StatusInternalServerError, errorMsg)
+	}
+
+	fmt.Println(fileHandle.Name())
+
+	pathOfResizedImage := "static/resized/" + baseFileName + "_" + widthAsStr + "_" + heightAsStr + "." + imageType
+    err = ioutil.WriteFile(pathOfResizedImage, body, 0666)
+    if err != nil {
+		errorMsg := "Error writing resized image to server disk."
+		return "", echo.NewHTTPError(http.StatusInternalServerError, errorMsg)
+    }
+
+	return pathOfResizedImage, nil
 }
 
 func checkValidDimensions(x, y int) bool {
 	if x > 0 && y > 0 {
 		return true
-	} else {
+	}	else {
 		return false
 	}
 }
@@ -38,9 +65,8 @@ func imgResizeHandler(c echo.Context) error {
 
 	//filename format: uniquefilename_x_y.jpg
 	resizedFilenameAndExt := strings.Split(resizedFilename,".")
+	fileExt := resizedFilenameAndExt[len(resizedFilenameAndExt) - 1]
 	tokenizedName := strings.Split(resizedFilenameAndExt[0], "_")
-
-	fmt.Println(tokenizedName)
 
 	reqWidth, err := strconv.Atoi(tokenizedName[1])
 	if err != nil {	
@@ -70,14 +96,29 @@ func imgResizeHandler(c echo.Context) error {
 	}
 
 	// check if the source image exists. if not, send a 404 error
-	if _, err := os.Stat("static/source/" + tokenizedName[0]); err != nil {
+	pathOfSourceImage := "static/source/" + tokenizedName[0] + "." + fileExt
+	if _, err := os.Stat(pathOfSourceImage); err != nil {
 		if os.IsNotExist(err){
 			errorMsg := "Source image does not exist for resizing."
 			return echo.NewHTTPError(http.StatusNotFound, errorMsg)
 		}
+	} else {
+
+		fileAsIOReader, err := os.Open(pathOfSourceImage)
+		if err != nil {
+			errorMsg := "Error opening image on server."
+			return echo.NewHTTPError(http.StatusNotFound, errorMsg)
+		}
+
+		pathOfResizedImage, err := sendRequestToResizer(fileAsIOReader, reqWidth, reqHeight)
+		if err != nil {
+			//all errors are already formatted as echo.Context errors
+			return err
+		}
+		return c.File(pathOfResizedImage)
 	}
 
-	return c.String(http.StatusOK, "temporary")
+	return nil
 }
 
 func main() {
