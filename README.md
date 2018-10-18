@@ -21,7 +21,7 @@ docker-compose build
 docker-compose up
 ```
 
-##Routes:
+## Routes:
 
 ### `/static/source/baseImageFilename`
 
