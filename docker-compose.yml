@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  app:
+    build: .
+    ports:
+      - "1323:1323"
+    restart: "always"
+    networks: 
+      - network1
+    depends_on:
+      - imaginary
+
+  imaginary:
+    image: h2non/imaginary:latest
+    networks:
+      - network1    
+    environment:
+       PORT: 9000
+    ports:
+      - "9000:9000"
+
+networks:
+  network1: 
+    driver: bridge
