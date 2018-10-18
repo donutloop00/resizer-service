@@ -12,14 +12,14 @@ To run:
 Move a test image to in the filename to the `static/source` directory. Make sure there are no '-' delimiters in the source image name used.
 Also make sure that the Golang `dep` tool is installed so that `dep ensure` will work correctly.
 
-'''
+```
 mkdir -p static/source
 mkdir -p static/resized
 dep ensure
 make
 docker-compose build
 docker-compose up
-'''
+```
 
 ##Routes:
 
