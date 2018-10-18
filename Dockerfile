@@ -1,5 +1,11 @@
-FROM scratch
+FROM golang:1.11.1-stretch
 
-COPY ./resizer-service /resizer-service
+RUN mkdir static
+RUN mkdir static/source
+RUN mkdir static/resized
+
+COPY ./static static
+
+ADD resizer-service /
 
 CMD ["/resizer-service"]
